@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+import React from "react"; // 🔥 Certifique-se de importar o React
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
@@ -11,13 +13,13 @@ const router = createBrowserRouter([
     element: <App />,
   },
   {
-    path: "/task",
-    element: <TaskPage />,
+    path: "/task/:id",
+    element: <TaskPage />, // 🔥 Removemos a passagem de props
   },
 ]);
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <RouterProvider router={router} /> {/* 🔥 Definir o roteador uma única vez */}
   </StrictMode>
 );

@@ -1,96 +1,62 @@
-import { useState, useEffect } from "react";
-import InputTask from "./components/InputTask";
-import TaskList from "./components/TaskList";
-import { v4 as uuidv4 } from "uuid";
+import { useState } from "react";
+import InputTask from "./components/InputTask/InputTask";
+import TaskList from "./components/TaskList/TaskList";
+import Filters from "./components/Filters/Filters";
+import SearchBar from "./components/SearchBar/SearchBar";
+import useTasks from "./hooks/useTasks";
 
 const App = () => {
-  const [tasks, setTasks] = useState([]);
   const [error, setError] = useState("");
+  const [filter, setFilter] = useState("all"); // Filtro: "all", "done", "pending"
+  const [searchTerm, setSearchTerm] = useState(""); // Termo de pesquisa
 
-  // Carregar tarefas do localStorage quando o componente for montado
-  useEffect(() => {
-    const savedTasks = JSON.parse(localStorage.getItem("tasks"));
-    if (savedTasks) {
-      setTasks(savedTasks);
+  const { tasks, addTask, deleteTask, toggleTaskDone } = useTasks();
+
+  // Função para adicionar tarefa com tratamento de erros
+  const handleAddTask = (newTask, newDescription) => {
+    try {
+      addTask(newTask, newDescription);
+      setError("");
+    } catch (err) {
+      setError(err.message);
     }
-  }, []);
-
-  // Salvar tarefas no localStorage sempre que o estado de tasks mudar
-  useEffect(() => {
-    if (tasks.length) {
-      localStorage.setItem("tasks", JSON.stringify(tasks));
-    }
-  }, [tasks]);
-
-  const addTask = (newTask, newDescription) => {
-    if (tasks.length >= 50) {
-      setError("Você atingiu o limite de tarefas. Por favor, apague algumas para continuar.");
-      return;
-    }
-
-    if (!newTask.trim() || !newDescription.trim()) {
-      setError("Por favor, preencha todos os campos antes de adicionar uma tarefa.");
-      return;
-    }
-
-    const newTaskObj = {
-      id: uuidv4(),
-      task: newTask,
-      description: newDescription,
-      done: false,
-      isDescriptionVisible: false,
-    };
-
-    setTasks([...tasks, newTaskObj]);
-    setError("");
   };
 
-  // Modificar a função handleDelete para atualizar o localStorage
-  const handleDelete = (id) => {
-    const updatedTasks = tasks.filter((task) => task.id !== id);
-    setTasks(updatedTasks);
+  // Filtrar tarefas com base no filtro selecionado
+  const filteredTasks = tasks.filter((task) => {
+    if (filter === "done") return task.done;
+    if (filter === "pending") return !task.done;
+    return true;
+  });
 
-    // Atualizar o localStorage depois de deletar a tarefa
-    localStorage.setItem("tasks", JSON.stringify(updatedTasks));
-  };
-
-  const handleMarkAsDone = (id) => {
-    const updatedTasks = tasks.map((task) =>
-      task.id === id ? { ...task, done: !task.done } : task
-    );
-    setTasks(updatedTasks);
-
-    // Atualizar o localStorage
-    localStorage.setItem("tasks", JSON.stringify(updatedTasks));
-  };
-
-  const handleToggleDescription = (index) => {
-    const updatedTasks = tasks.map((task, taskIndex) =>
-      taskIndex === index
-        ? { ...task, isDescriptionVisible: !task.isDescriptionVisible }
-        : task
-    );
-    setTasks(updatedTasks);
-
-    // Atualizar o localStorage
-    localStorage.setItem("tasks", JSON.stringify(updatedTasks));
-  };
+  // Filtrar tarefas com base no termo de pesquisa
+  const searchedTasks = filteredTasks.filter((task) =>
+    task.task.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    task.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-slate-500 p-6">
+    <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 p-6">
+      {/* Título */}
       <h1 className="text-5xl font-bold mb-8 text-center text-white">TodayTask</h1>
 
-      <div className="w-full max-w-3xl mb-8 p-6 bg-white rounded-md shadow-md">
-        <InputTask addTask={addTask} error={error} />
-      </div>
+      {/* Container Principal (Lado a Lado) */}
+      <div className="w-full max-w-6xl flex gap-8">
+        {/* Formulário de Adicionar Tarefa */}
+        <div className="w-1/2 p-6 bg-gray-800 rounded-lg shadow-lg">
+          <InputTask addTask={handleAddTask} error={error} />
+        </div>
 
-      <div className="w-full max-w-3xl p-6 bg-white rounded-md shadow-md">
-        <TaskList
-          tasks={tasks}
-          onMarkAsDone={handleMarkAsDone}
-          onDelete={handleDelete}
-          onToggleDescription={handleToggleDescription}
-        />
+        {/* Lista de Tarefas com Filtros e Barra de Pesquisa */}
+        <div className="w-1/2 p-6 bg-gray-800 rounded-lg shadow-lg">
+          <Filters filter={filter} setFilter={setFilter} />
+          <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+          <TaskList
+            tasks={searchedTasks}
+            onMarkAsDone={toggleTaskDone}
+            onDelete={deleteTask}
+          />
+        </div>
       </div>
     </div>
   );
